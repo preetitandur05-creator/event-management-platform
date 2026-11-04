@@ -2,11 +2,12 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -24,6 +25,7 @@ model User {
   assignedSpocs Spoc[]     @relation("SpocUser")
   @@map("users")
 }
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -41,6 +43,7 @@ model Account {
   @@unique([provider, providerAccountId])
   @@map("accounts")
 }
+
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
@@ -49,6 +52,7 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@map("sessions")
 }
+
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -56,6 +60,7 @@ model VerificationToken {
   @@unique([identifier, token])
   @@map("verification_tokens")
 }
+
 model Role {
   id          String   @id @default(cuid())
   name        String   @unique
@@ -66,6 +71,7 @@ model Role {
   users       UserRole[]
   @@map("roles")
 }
+
 model UserRole {
   userId String
   roleId String
@@ -74,82 +80,86 @@ model UserRole {
   @@id([userId, roleId])
   @@map("user_roles")
 }
+
 model Event {
-  id              String   @id @default(cuid())
-  name            String
-  tagline         String?
-  description     String?  @db.Text
-  category        String?
-  theme           String?
-  logoUrl         String?
-  bannerUrl       String?
-  startDate       DateTime
-  endDate         DateTime
-  startTime       String?
-  endTime         String?
-  venueName       String?
-  venueAddress    String?  @db.Text
-  mapsUrl         String?
-  organizerName   String?
-  organizerEmail  String?
-  organizerPhone  String?
-  primaryColor    String   @default("#1B5E20")
-  secondaryColor  String   @default("#26A69A")
-  backgroundColor String   @default("#F8F6F1")
-  textColor       String   @default("#1A2E1A")
-  registrationMode String  @default("OPEN")
-  isPublished      Boolean @default(false)
+  id               String   @id @default(cuid())
+  name             String
+  tagline          String?
+  description      String?  @db.Text
+  category         String?
+  theme            String?
+  logoUrl          String?
+  bannerUrl        String?
+  startDate        DateTime
+  endDate          DateTime
+  startTime        String?
+  endTime          String?
+  venueName        String?
+  venueAddress     String?  @db.Text
+  mapsUrl          String?
+  organizerName    String?
+  organizerEmail   String?
+  organizerPhone   String?
+  primaryColor     String   @default("#1B5E20")
+  secondaryColor   String   @default("#26A69A")
+  backgroundColor  String   @default("#F8F6F1")
+  textColor        String   @default("#1A2E1A")
+  registrationMode String   @default("OPEN")
+  isPublished      Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  pages           EventPage[]
-  ticketTypes     TicketType[]
-  registrations   Registration[]
-  spocs           Spoc[]
+  pages            EventPage[]
+  ticketTypes      TicketType[]
+  registrations    Registration[]
+  spocs            Spoc[]
   @@map("events")
 }
+
 model EventPage {
-  id          String   @id @default(cuid())
-  eventId     String
-  slug        String
-  title       String
-  isEnabled   Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  content     Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  eventId   String
+  slug      String
+  title     String
+  isEnabled Boolean  @default(true)
+  sortOrder Int      @default(0)
+  content   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   @@unique([eventId, slug])
   @@map("event_pages")
 }
+
 model TicketType {
-  id              String   @id @default(cuid())
-  eventId         String
-  name            String
-  description     String?  @db.Text
-  price           Decimal  @default(0) @db.Decimal(10, 2)
-  currency        String   @default("INR")
-  isActive        Boolean  @default(true)
-  sortOrder       Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  event          Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  registrations  Registration[]
+  id            String   @id @default(cuid())
+  eventId       String
+  name          String
+  description   String?  @db.Text
+  price         Decimal  @default(0) @db.Decimal(10, 2)
+  currency      String   @default("INR")
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations Registration[]
   @@map("ticket_types")
 }
+
 model Registration {
-  id              String   @id @default(cuid())
-  eventId         String
-  ticketTypeId    String
-  registrationId  String   @unique
-  status          String   @default("CONFIRMED")
-  fullName        String
-  email           String
-  phone           String?
-  organization    String?
-  city            String?
-  country         String?  @default("India")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  eventId        String
+  ticketTypeId   String
+  registrationId String   @unique
+  status         String   @default("CONFIRMED")
+  fullName       String
+  email          String
+  phone          String?
+  organization   String?
+  city           String?
+  country        String?  @default("India")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   event      Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
   ticket     Ticket?
@@ -158,42 +168,45 @@ model Registration {
   @@index([email])
   @@map("registrations")
 }
+
 model Ticket {
-  id              String   @id @default(cuid())
-  registrationId  String   @unique
-  ticketNumber    String   @unique
-  verificationToken String @unique
-  qrCodeDataUrl   String?  @db.Text
-  status          String   @default("VALID")
-  issuedAt        DateTime @default(now())
+  id                String   @id @default(cuid())
+  registrationId    String   @unique
+  ticketNumber      String   @unique
+  verificationToken String   @unique
+  qrCodeDataUrl     String?  @db.Text
+  status            String   @default("VALID")
+  issuedAt          DateTime @default(now())
   registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   checkIns     CheckIn[]
   @@map("tickets")
 }
+
 model CheckIn {
-  id           String   @id @default(cuid())
-  ticketId     String
-  checkedInAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  ticketId      String
+  checkedInAt   DateTime @default(now())
   checkedInById String?
   ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   checkedInBy User?  @relation("CheckedInBy", fields: [checkedInById], references: [id])
   @@map("check_ins")
 }
+
 model Spoc {
-  id            String   @id @default(cuid())
-  eventId       String
-  userId        String?
-  name          String
-  designation   String?
-  department    String?
-  email         String?
-  phone         String?
-  whatsapp      String?
+  id             String   @id @default(cuid())
+  eventId        String
+  userId         String?
+  name           String
+  designation    String?
+  department     String?
+  email          String?
+  phone          String?
+  whatsapp       String?
   responsibility String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  event       Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user        User? @relation("SpocUser", fields: [userId], references: [id])
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User?  @relation("SpocUser", fields: [userId], references: [id])
   @@map("spocs")
 }
