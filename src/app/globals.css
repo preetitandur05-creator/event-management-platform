@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap');
+
+:root {
+  --color-primary: #1B5E20;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #26A69A;
+  --color-secondary-foreground: #FFFFFF;
+  --color-background: #F8F6F1;
+  --color-foreground: #1A2E1A;
+  --color-muted: #E8E4D9;
+  --color-muted-foreground: #5A6B5A;
+  --color-accent: #81C784;
+  --color-card: #FFFFFF;
+  --color-border: #D4CFC0;
+  --color-ring: #1B5E20;
+  --radius: 0.75rem;
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg border-2 border-primary bg-transparent px-6 py-3 text-sm font-semibold text-primary transition-all hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .section-padding {
+    @apply px-4 py-16 sm:px-6 lg:px-8 lg:py-24;
+  }
+  .container-narrow {
+    @apply mx-auto max-w-5xl;
+  }
+  .container-wide {
+    @apply mx-auto max-w-7xl;
+  }
+}
