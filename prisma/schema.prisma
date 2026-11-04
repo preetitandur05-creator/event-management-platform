@@ -8,8 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  // Optional: set DATABASE_URL_UNPOOLED in Vercel for better migrations
-  // directUrl = env("DATABASE_URL_UNPOOLED")
+  // directUrl = env("DATABASE_URL_UNPOOLED")  // optional – set in Vercel if available
 }
 
 // ==================== AUTH & RBAC ====================
@@ -78,47 +77,103 @@ model Role {
   id          String     @id @default(cuid())
   name        String     @unique
   description String?
+  isSystem    Boolean    @default(false)
   users       UserRole[]
 
   @@map("roles")
 }
 
 model UserRole {
-  id     String @id @default(cuid())
   userId String
   roleId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, roleId])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
   @@map("user_roles")
 }
 
-// ==================== EVENT ====================
+// ==================== EVENT CONFIG ====================
 
 model Event {
+  id              String   @id @default(cuid())
+  name            String
+  tagline         String?
+  description     String?  @db.Text
+  category        String?
+  theme           String?
+  logoUrl         String?
+  bannerUrl       String?
+  faviconUrl      String?
+  startDate       DateTime
+  endDate         DateTime
+  startTime       String?
+  endTime         String?
+  venueName       String?
+  venueAddress    String?  @db.Text
+  mapsUrl         String?
+  organizerName   String?
+  organizerEmail  String?
+  organizerPhone  String?
+
+  primaryColor    String   @default("#1B5E20")
+  secondaryColor  String   @default("#26A69A")
+  backgroundColor String   @default("#F8F6F1")
+  textColor       String   @default("#1A2E1A")
+  fontHeading     String   @default("Poppins")
+  fontBody        String   @default("Inter")
+
+  registrationMode String  @default("OPEN")
+  isPublished      Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  pages           EventPage[]
+  ticketTypes     TicketType[]
+  registrations   Registration[]
+  sponsors        Sponsor[]
+  agendaItems     AgendaItem[]
+  formFields      FormField[]
+  emails          EmailLog[]
+  reminders       Reminder[]
+  spocs           Spoc[]
+
+  @@map("events")
+}
+
+model EventPage {
   id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?  @db.Text
-  shortDesc   String?
-  startDate   DateTime?
-  endDate     DateTime?
-  venue       String?
-  city        String?
-  isPublished Boolean  @default(false)
+  eventId     String
+  slug        String
+  title       String
+  content     String?  @db.Text
+  isPublished Boolean  @default(true)
+  order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  registrations Registration[]
-  sponsors      Sponsor[]
-  agendaItems   AgendaItem[]
-  pages         Page[]
-  emails        EmailLog[]
-  reminders     Reminder[]
-  formFields    FormField[]
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@map("events")
+  @@unique([eventId, slug])
+  @@map("event_pages")
+}
+
+model TicketType {
+  id          String   @id @default(cuid())
+  eventId     String
+  name        String
+  description String?
+  price       Int      @default(0)
+  currency    String   @default("INR")
+  capacity    Int?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+
+  @@map("ticket_types")
 }
 
 // ==================== REGISTRATION & TICKETS ====================
@@ -126,6 +181,7 @@ model Event {
 model Registration {
   id              String   @id @default(cuid())
   eventId         String
+  ticketTypeId    String?
   registrationId  String   @unique
   fullName        String
   email           String
@@ -142,10 +198,11 @@ model Registration {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  checkIns  CheckIn[]
-  emails    EmailLog[]
-  answers   FormAnswer[]
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketType TicketType? @relation(fields: [ticketTypeId], references: [id])
+  checkIns   CheckIn[]
+  emails     EmailLog[]
+  answers    FormAnswer[]
 
   @@index([eventId, email])
   @@map("registrations")
@@ -197,24 +254,6 @@ model AgendaItem {
   @@map("agenda_items")
 }
 
-// ==================== CMS PAGES ====================
-
-model Page {
-  id          String   @id @default(cuid())
-  eventId     String
-  slug        String
-  title       String
-  content     String?  @db.Text
-  isPublished Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  @@unique([eventId, slug])
-  @@map("pages")
-}
-
 // ==================== FORM BUILDER ====================
 
 model FormField {
@@ -250,13 +289,15 @@ model FormAnswer {
 
 model Spoc {
   id      String  @id @default(cuid())
+  eventId String?
   userId  String?
   name    String
   email   String?
   phone   String?
   college String?
 
-  user User? @relation("SpocUser", fields: [userId], references: [id])
+  event Event? @relation(fields: [eventId], references: [id])
+  user  User?  @relation("SpocUser", fields: [userId], references: [id])
 
   @@map("spocs")
 }
