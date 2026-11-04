@@ -1,12 +1,17 @@
-// Event Management Platform - Prisma Schema
+// This is your Prisma schema file for the Event Management Platform
+// Compatible with Neon Serverless PostgreSQL
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
+
+// ==================== AUTH & RBAC ====================
 
 model User {
   id            String    @id @default(cuid())
@@ -18,11 +23,14 @@ model User {
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
   accounts      Account[]
   sessions      Session[]
   roles         UserRole[]
   checkIns      CheckIn[]  @relation("CheckedInBy")
+  auditLogs     AuditLog[]
   assignedSpocs Spoc[]     @relation("SpocUser")
+
   @@map("users")
 }
 
@@ -39,7 +47,9 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
   @@map("accounts")
 }
@@ -50,6 +60,7 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("sessions")
 }
 
@@ -57,156 +68,245 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime
+
   @@unique([identifier, token])
   @@map("verification_tokens")
 }
 
 model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String     @id @default(cuid())
+  name        String     @unique
   description String?
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
   users       UserRole[]
+
   @@map("roles")
 }
 
 model UserRole {
+  id     String @id @default(cuid())
   userId String
   roleId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  @@id([userId, roleId])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
   @@map("user_roles")
 }
 
+// ==================== EVENT ====================
+
 model Event {
-  id               String   @id @default(cuid())
-  name             String
-  tagline          String?
-  description      String?  @db.Text
-  category         String?
-  theme            String?
-  logoUrl          String?
-  bannerUrl        String?
-  startDate        DateTime
-  endDate          DateTime
-  startTime        String?
-  endTime          String?
-  venueName        String?
-  venueAddress     String?  @db.Text
-  mapsUrl          String?
-  organizerName    String?
-  organizerEmail   String?
-  organizerPhone   String?
-  primaryColor     String   @default("#1B5E20")
-  secondaryColor   String   @default("#26A69A")
-  backgroundColor  String   @default("#F8F6F1")
-  textColor        String   @default("#1A2E1A")
-  registrationMode String   @default("OPEN")
-  isPublished      Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  pages            EventPage[]
-  ticketTypes      TicketType[]
-  registrations    Registration[]
-  spocs            Spoc[]
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  shortDesc   String?
+  startDate   DateTime?
+  endDate     DateTime?
+  venue       String?
+  city        String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  registrations Registration[]
+  sponsors      Sponsor[]
+  agendaItems   AgendaItem[]
+  pages         Page[]
+  emails        EmailLog[]
+  reminders     Reminder[]
+  formFields    FormField[]
+
   @@map("events")
 }
 
-model EventPage {
+// ==================== REGISTRATION & TICKETS ====================
+
+model Registration {
+  id              String   @id @default(cuid())
+  eventId         String
+  registrationId  String   @unique
+  fullName        String
+  email           String
+  phone           String?
+  college         String?
+  year            String?
+  branch          String?
+  city            String?
+  status          String   @default("CONFIRMED")
+  ticketNumber    String   @unique
+  qrToken         String   @unique
+  checkedIn       Boolean  @default(false)
+  checkedInAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  checkIns  CheckIn[]
+  emails    EmailLog[]
+  answers   FormAnswer[]
+
+  @@index([eventId, email])
+  @@map("registrations")
+}
+
+model CheckIn {
+  id             String   @id @default(cuid())
+  registrationId String
+  checkedInById  String?
+  checkedInAt    DateTime @default(now())
+  notes          String?
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  checkedInBy  User?        @relation("CheckedInBy", fields: [checkedInById], references: [id])
+
+  @@map("check_ins")
+}
+
+// ==================== SPONSORS & AGENDA ====================
+
+model Sponsor {
+  id          String  @id @default(cuid())
+  eventId     String
+  name        String
+  logoUrl     String?
+  website     String?
+  tier        String  @default("PARTNER")
+  description String?
+  order       Int     @default(0)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("sponsors")
+}
+
+model AgendaItem {
+  id          String   @id @default(cuid())
+  eventId     String
+  title       String
+  description String?  @db.Text
+  startTime   DateTime?
+  endTime     DateTime?
+  location    String?
+  speaker     String?
+  order       Int      @default(0)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("agenda_items")
+}
+
+// ==================== CMS PAGES ====================
+
+model Page {
   id        String   @id @default(cuid())
   eventId   String
   slug      String
   title     String
-  isEnabled Boolean  @default(true)
-  sortOrder Int      @default(0)
-  content   Json?
+  content   String?  @db.Text
+  isPublished Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   @@unique([eventId, slug])
-  @@map("event_pages")
+  @@map("pages")
 }
 
-model TicketType {
-  id            String   @id @default(cuid())
-  eventId       String
-  name          String
-  description   String?  @db.Text
-  price         Decimal  @default(0) @db.Decimal(10, 2)
-  currency      String   @default("INR")
-  isActive      Boolean  @default(true)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  registrations Registration[]
-  @@map("ticket_types")
+// ==================== FORM BUILDER ====================
+
+model FormField {
+  id          String  @id @default(cuid())
+  eventId     String
+  label       String
+  name        String
+  type        String  @default("text")
+  required    Boolean @default(false)
+  options     String? @db.Text
+  order       Int     @default(0)
+  placeholder String?
+
+  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  answers FormAnswer[]
+
+  @@map("form_fields")
 }
 
-model Registration {
-  id             String   @id @default(cuid())
-  eventId        String
-  ticketTypeId   String
-  registrationId String   @unique
-  status         String   @default("CONFIRMED")
-  fullName       String
-  email          String
-  phone          String?
-  organization   String?
-  city           String?
-  country        String?  @default("India")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  event      Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
-  ticket     Ticket?
-  @@unique([eventId, email, ticketTypeId])
-  @@index([eventId, status])
-  @@index([email])
-  @@map("registrations")
-}
+model FormAnswer {
+  id             String @id @default(cuid())
+  registrationId String
+  fieldId        String
+  value          String @db.Text
 
-model Ticket {
-  id                String   @id @default(cuid())
-  registrationId    String   @unique
-  ticketNumber      String   @unique
-  verificationToken String   @unique
-  qrCodeDataUrl     String?  @db.Text
-  status            String   @default("VALID")
-  issuedAt          DateTime @default(now())
   registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  checkIns     CheckIn[]
-  @@map("tickets")
+  field        FormField    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@map("form_answers")
 }
 
-model CheckIn {
-  id            String   @id @default(cuid())
-  ticketId      String
-  checkedInAt   DateTime @default(now())
-  checkedInById String?
-  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  checkedInBy User?  @relation("CheckedInBy", fields: [checkedInById], references: [id])
-  @@map("check_ins")
-}
+// ==================== SPOC ====================
 
 model Spoc {
-  id             String   @id @default(cuid())
-  eventId        String
-  userId         String?
-  name           String
-  designation    String?
-  department     String?
-  email          String?
-  phone          String?
-  whatsapp       String?
-  responsibility String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user  User?  @relation("SpocUser", fields: [userId], references: [id])
+  id      String  @id @default(cuid())
+  userId  String?
+  name    String
+  email   String?
+  phone   String?
+  college String?
+
+  user User? @relation("SpocUser", fields: [userId], references: [id])
+
   @@map("spocs")
+}
+
+// ==================== EMAIL & REMINDERS ====================
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  eventId        String?
+  registrationId String?
+  to             String
+  subject        String
+  status         String   @default("SENT")
+  providerId     String?
+  error          String?
+  sentAt         DateTime @default(now())
+
+  event        Event?        @relation(fields: [eventId], references: [id])
+  registration Registration? @relation(fields: [registrationId], references: [id])
+
+  @@map("email_logs")
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  eventId   String
+  type      String
+  subject   String
+  body      String   @db.Text
+  scheduledAt DateTime
+  sentAt    DateTime?
+  status    String   @default("PENDING")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("reminders")
+}
+
+// ==================== AUDIT ====================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  meta      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
 }
