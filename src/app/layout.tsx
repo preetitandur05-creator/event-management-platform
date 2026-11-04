@@ -6,8 +6,7 @@ export const metadata: Metadata = {
     default: "SAMANVAYA 2027",
     template: "%s | SAMANVAYA 2027",
   },
-  description:
-    "United for Health. Together for a Sustainable Future. Community Health, Wellness & Sustainability event in Hubballi–Dharwad.",
+  description: "SAMANVAYA 2027 — College Event Management Platform",
 };
 
 export default function RootLayout({
@@ -17,7 +16,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col">{children}</body>
+      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased">
+        {children}
+      </body>
     </html>
   );
 }
