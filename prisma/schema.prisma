@@ -6,9 +6,10 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Optional: set DATABASE_URL_UNPOOLED in Vercel for better migrations
+  // directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // ==================== AUTH & RBAC ====================
@@ -199,14 +200,14 @@ model AgendaItem {
 // ==================== CMS PAGES ====================
 
 model Page {
-  id        String   @id @default(cuid())
-  eventId   String
-  slug      String
-  title     String
-  content   String?  @db.Text
-  isPublished Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  eventId     String
+  slug        String
+  title       String
+  content     String?  @db.Text
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
@@ -280,14 +281,14 @@ model EmailLog {
 }
 
 model Reminder {
-  id        String   @id @default(cuid())
-  eventId   String
-  type      String
-  subject   String
-  body      String   @db.Text
+  id          String   @id @default(cuid())
+  eventId     String
+  type        String
+  subject     String
+  body        String   @db.Text
   scheduledAt DateTime
-  sentAt    DateTime?
-  status    String   @default("PENDING")
+  sentAt      DateTime?
+  status      String   @default("PENDING")
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
